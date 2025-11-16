@@ -17,7 +17,7 @@ function Login({ onLoginSuccess }) {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post('https://medical-app-backend-msxq.onrender.com/api/auth/login', {
         email,
         password,
         role,
