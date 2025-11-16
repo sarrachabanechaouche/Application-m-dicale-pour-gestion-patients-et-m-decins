@@ -34,18 +34,36 @@ router.post('/login', async (req, res) => {
 
     // Récupérer les infos spécifiques (médecin ou patient)
     let userInfo;
+    let responseData = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
     if (role === 'medecin') {
       const medecinResult = await pool.query(
         'SELECT * FROM medecins WHERE utilisateur_id = $1',
         [user.id]
       );
       userInfo = medecinResult.rows[0];
+      
+      // IMPORTANT : Ajouter medecinId pour le frontend
+      responseData.nom = userInfo.nom;
+      responseData.prenom = userInfo.prenom;
+      responseData.medecinId = userInfo.id; // 👈 CETTE LIGNE EST CRUCIALE
+      responseData.specialite = userInfo.specialite;
+      
     } else {
       const patientResult = await pool.query(
         'SELECT * FROM patients WHERE utilisateur_id = $1',
         [user.id]
       );
       userInfo = patientResult.rows[0];
+      
+      // Pour les patients
+      responseData.nom = userInfo.nom;
+      responseData.prenom = userInfo.prenom;
+      responseData.patientId = userInfo.id; // 👈 L'ID du patient aussi
     }
 
     // Créer le token JWT
@@ -58,13 +76,7 @@ router.post('/login', async (req, res) => {
     // Renvoyer le token et les infos utilisateur
     res.json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        nom: userInfo.nom,
-        prenom: userInfo.prenom,
-      }
+      user: responseData
     });
 
   } catch (error) {
