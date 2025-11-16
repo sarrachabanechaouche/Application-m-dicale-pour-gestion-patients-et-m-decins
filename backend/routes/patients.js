@@ -2,9 +2,9 @@ const express = require('express');
 const pool = require('../config/database');
 const router = express.Router();
 
-// ========== PATIENTS ==========
+// ========== RÉCUPÉRER LES PATIENTS ==========
 
-// Récupérer les patients d'un médecin
+// Récupérer les patients d'un médecin (privés + publics)
 router.get('/medecin/:medecinId', async (req, res) => {
   try {
     const { medecinId } = req.params;
@@ -19,16 +19,87 @@ router.get('/medecin/:medecinId', async (req, res) => {
         p.groupe_sanguin,
         p.telephone,
         p.adresse,
+        p.type_patient,
+        p.type_catheter,
+        p.date_pose_catheter,
         u.email
       FROM patients p
       JOIN utilisateurs u ON p.utilisateur_id = u.id
-      WHERE p.medecin_referent_id = $1
-      ORDER BY p.nom, p.prenom;
+      WHERE p.medecin_referent_id = $1 OR p.type_patient = 'public'
+      ORDER BY p.type_patient DESC, p.nom, p.prenom;
     `, [medecinId]);
     
     res.json(result.rows);
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// ========== AJOUTER UN NOUVEAU PATIENT ==========
+
+router.post('/nouveau', async (req, res) => {
+  try {
+    const { 
+      email,
+      mot_de_passe,
+      nom,
+      prenom,
+      date_naissance,
+      sexe,
+      groupe_sanguin,
+      telephone,
+      adresse,
+      type_patient,
+      type_catheter,
+      date_pose_catheter,
+      numero_securite_sociale,
+      personne_contact,
+      tel_contact,
+      medecin_referent_id
+    } = req.body;
+
+    // 1. Créer l'utilisateur
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(mot_de_passe, 10);
+    
+    const userResult = await pool.query(`
+      INSERT INTO utilisateurs (email, mot_de_passe, role)
+      VALUES ($1, $2, 'patient')
+      RETURNING id;
+    `, [email, hashedPassword]);
+    
+    const userId = userResult.rows[0].id;
+
+    // 2. Créer le patient
+    const patientResult = await pool.query(`
+      INSERT INTO patients (
+        utilisateur_id, nom, prenom, date_naissance, sexe, 
+        groupe_sanguin, telephone, adresse, type_patient,
+        type_catheter, date_pose_catheter, numero_securite_sociale,
+        personne_contact, tel_contact, medecin_referent_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *;
+    `, [
+      userId, nom, prenom, date_naissance, sexe,
+      groupe_sanguin, telephone, adresse, type_patient,
+      type_catheter, date_pose_catheter, numero_securite_sociale,
+      personne_contact, tel_contact, medecin_referent_id
+    ]);
+
+    res.json({ 
+      success: true, 
+      patient: patientResult.rows[0],
+      message: 'Patient créé avec succès'
+    });
+
+  } catch (error) {
+    console.error(error);
+    
+    if (error.code === '23505') { // Duplicate email
+      return res.status(400).json({ error: 'Cet email existe déjà' });
+    }
+    
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -73,7 +144,6 @@ router.get('/:patientId/medicaments', async (req, res) => {
 
 // ========== SÉANCES DE DIALYSE ==========
 
-// Récupérer toutes les séances d'un patient
 router.get('/:patientId/seances', async (req, res) => {
   try {
     const { patientId } = req.params;
@@ -96,7 +166,6 @@ router.get('/:patientId/seances', async (req, res) => {
   }
 });
 
-// Ajouter une séance de dialyse
 router.post('/:patientId/seances', async (req, res) => {
   try {
     const { patientId } = req.params;
@@ -111,7 +180,6 @@ router.post('/:patientId/seances', async (req, res) => {
       medecin_id 
     } = req.body;
     
-    // Calculer la durée en minutes
     const duree = date_sortie ? 
       Math.round((new Date(date_sortie) - new Date(date_entree)) / 60000) : null;
     
