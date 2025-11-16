@@ -13,7 +13,7 @@ function ListePatients() {
   const [user, setUser] = useState(null);
   
   // Filtres
-  const [activeFilter, setActiveFilter] = useState(null); // null, 'tous', 'public', 'prive'
+  const [activeFilter, setActiveFilter] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -48,15 +48,12 @@ function ListePatients() {
 
     let filtered = [...patients];
 
-    // Filtre par type
     if (activeFilter === 'public') {
       filtered = filtered.filter(p => p.type_patient === 'public');
     } else if (activeFilter === 'prive') {
       filtered = filtered.filter(p => p.type_patient === 'prive');
     }
-    // Si 'tous', on garde tous les patients
 
-    // Recherche
     if (searchTerm.trim()) {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(p => 
@@ -92,10 +89,9 @@ function ListePatients() {
 
   const handleFilterChange = (filter) => {
     setActiveFilter(filter);
-    setSearchTerm(''); // Réinitialiser la recherche
+    setSearchTerm('');
   };
 
-  // Afficher le formulaire d'ajout
   if (showAjouter) {
     return (
       <AjouterPatient 
@@ -106,21 +102,18 @@ function ListePatients() {
     );
   }
 
-  // Afficher les détails d'un patient
   if (showDetail && selectedPatient) {
     return <DetailPatient patient={selectedPatient} onBack={handleBack} />;
   }
 
   if (loading) return <div style={styles.loading}>Chargement...</div>;
 
-  // Statistiques
   const totalPatients = patients.length;
   const patientsPublics = patients.filter(p => p.type_patient === 'public').length;
   const patientsPrives = patients.filter(p => p.type_patient === 'prive').length;
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <h1 style={styles.title}>👥 Mes Patients</h1>
         <div style={styles.headerButtons}>
@@ -139,7 +132,6 @@ function ListePatients() {
         </div>
       </div>
 
-      {/* Cartes de filtres */}
       <div style={styles.filterCards}>
         <div 
           style={{
@@ -175,7 +167,6 @@ function ListePatients() {
         </div>
       </div>
 
-      {/* Barre de recherche - visible seulement si un filtre est actif */}
       {activeFilter && (
         <div style={styles.searchContainer}>
           <input
@@ -196,7 +187,6 @@ function ListePatients() {
         </div>
       )}
 
-      {/* Message d'instruction */}
       {!activeFilter && (
         <div style={styles.instructionBox}>
           <h3>👆 Sélectionnez une catégorie ci-dessus pour voir vos patients</h3>
@@ -204,7 +194,6 @@ function ListePatients() {
         </div>
       )}
 
-      {/* Liste des patients filtrés */}
       {activeFilter && (
         <div style={styles.resultsSection}>
           <h2 style={styles.resultsTitle}>
@@ -225,82 +214,39 @@ function ListePatients() {
           ) : (
             <div style={styles.patientsList}>
               {filteredPatients.map(patient => (
-                <PatientCard 
-                  key={patient.id} 
-                  patient={patient} 
-                  onView={handleViewDetails}
-                />
+                <div 
+                  key={patient.id}
+                  style={styles.patientCard}
+                  onClick={() => handleViewDetails(patient)}
+                >
+                  <div style={styles.patientHeader}>
+                    <h3 style={styles.patientName}>
+                      {patient.prenom} {patient.nom}
+                      {patient.type_patient === 'public' && (
+                        <span style={styles.publicBadge}>PUBLIC</span>
+                      )}
+                      {patient.type_patient === 'prive' && (
+                        <span style={styles.priveBadge}>PRIVÉ</span>
+                      )}
+                    </h3>
+                  </div>
+                  <div style={styles.patientInfo}>
+                    <span>📧 {patient.email}</span>
+                    <span>📞 {patient.telephone || 'N/A'}</span>
+                    <span>🩸 {patient.groupe_sanguin || 'N/A'}</span>
+                    {patient.type_catheter && (
+                      <span>💉 {patient.type_catheter}</span>
+                    )}
+                  </div>
+                  <div style={styles.viewButtonContainer}>
+                    <span style={styles.viewButton}>Voir le dossier →</span>
+                  </div>
+                </div>
               ))}
             </div>
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-// Composant carte patient
-function PatientCard({ patient }) {
-  return (
-    <div 
-      style={styles.patientCard}
-      onClick={() => patient.onView && patient.onView(patient)}
-    >
-      <div style={styles.patientHeader}>
-        <h3 style={styles.patientName}>
-          {patient.prenom} {patient.nom}
-          {patient.type_patient === 'public' && (
-            <span style={styles.publicBadge}>PUBLIC</span>
-          )}
-          {patient.type_patient === 'prive' && (
-            <span style={styles.priveBadge}>PRIVÉ</span>
-          )}
-        </h3>
-      </div>
-      <div style={styles.patientInfo}>
-        <span>📧 {patient.email}</span>
-        <span>📞 {patient.telephone || 'N/A'}</span>
-        <span>🩸 {patient.groupe_sanguin || 'N/A'}</span>
-        {patient.type_catheter && (
-          <span>💉 {patient.type_catheter}</span>
-        )}
-      </div>
-      <div style={styles.viewButtonContainer}>
-        <span style={styles.viewButton}>Voir le dossier →</span>
-      </div>
-    </div>
-  );
-}
-
-// Corriger la fonction PatientCard pour passer onView
-function PatientCard({ patient, onView }) {
-  return (
-    <div 
-      style={styles.patientCard}
-      onClick={() => onView(patient)}
-    >
-      <div style={styles.patientHeader}>
-        <h3 style={styles.patientName}>
-          {patient.prenom} {patient.nom}
-          {patient.type_patient === 'public' && (
-            <span style={styles.publicBadge}>PUBLIC</span>
-          )}
-          {patient.type_patient === 'prive' && (
-            <span style={styles.priveBadge}>PRIVÉ</span>
-          )}
-        </h3>
-      </div>
-      <div style={styles.patientInfo}>
-        <span>📧 {patient.email}</span>
-        <span>📞 {patient.telephone || 'N/A'}</span>
-        <span>🩸 {patient.groupe_sanguin || 'N/A'}</span>
-        {patient.type_catheter && (
-          <span>💉 {patient.type_catheter}</span>
-        )}
-      </div>
-      <div style={styles.viewButtonContainer}>
-        <span style={styles.viewButton}>Voir le dossier →</span>
-      </div>
     </div>
   );
 }
