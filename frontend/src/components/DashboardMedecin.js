@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import ListePatients from './ListePatients';
 
 function DashboardMedecin() {
   const [user, setUser] = useState(null);
+  const [showPatients, setShowPatients] = useState(false);
 
   useEffect(() => {
     // Récupérer les infos de l'utilisateur connecté
@@ -18,6 +20,11 @@ function DashboardMedecin() {
   };
 
   if (!user) return <div>Chargement...</div>;
+
+  // Si on clique sur "Voir les patients", afficher la liste
+  if (showPatients) {
+    return <ListePatients />;
+  }
 
   return (
     <div style={styles.container}>
@@ -40,7 +47,12 @@ function DashboardMedecin() {
         <div style={styles.card}>
           <h3>👥 Mes Patients</h3>
           <p>Gérer la liste de vos patients</p>
-          <button style={styles.button}>Voir les patients</button>
+          <button 
+            style={styles.button}
+            onClick={() => setShowPatients(true)}
+          >
+            Voir les patients
+          </button>
         </div>
 
         <div style={styles.card}>
